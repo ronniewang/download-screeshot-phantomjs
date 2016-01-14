@@ -44,10 +44,6 @@ Date.prototype.format = function (fmt) { //author: meizz
 }
 
 t = Date.now();
-if (args.length < 3) {
-    console.log("Usage: test.js <url to grap...> <charset>");
-    phantom.exit(1);
-}
 
 page.onResourceRequested = function (req, controller) {
     tracker.start(req.id);
@@ -60,6 +56,18 @@ page.onResourceReceived = function (res) {
         console.log('[Response ' + res.id + '] ' + res.url);
     }
 };
+
+var url = 'http://live.500.com/';
+var charset = 'gbk';
+if (args.length == 3) {
+    url = url + '?e=' + args[1]
+    charset = args[2]
+} else if (args.length == 2) {
+    charset = args[2]
+} else if (args.length == 1) {
+} else {
+    phantom.exit(1);
+}
 setInterval(function () {
     page.open('http://live.500.com/?e=' + args[1], function (status) {
         if (status !== 'success') {

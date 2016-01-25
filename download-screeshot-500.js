@@ -6,7 +6,16 @@
 var fs = require('fs');
 var args = require('system').args;
 var page = require('webpage').create();
+page.settings.resourceTimeout = 5000; // 5 seconds
+page.onResourceTimeout = function(e) {
+  console.log(e.errorCode);   // it'll probably be 408 
+  console.log(e.errorString); // it'll probably be 'Network timeout on resource'
+  console.log(e.url);         // the url whose request timed out
+//  phantom.exit(1);
+};
+
 var CATCH_PERIOD_MILLS = 30000;
+
 var tracker = (function () {
     var openRequests = [],
         counter = 0;
@@ -50,20 +59,17 @@ t = Date.now();
 page.onResourceRequested = function (req, controller) {
     tracker.start(req.id);
 //    console.log(new Date() + '[Request ' + req.id + '] ');
-
-    //console.log(new Date() + '[Request ' + req.id + '] ' + req.url);
 };
 
 page.onResourceReceived = function (res) {
     if (res.stage === 'end') {
         tracker.end(res.id);
-        //console.log('[Response ' + res.id + '] ' + res.url);
         //       console.log(new Date() + '[Response ' + res.id + '] ');
     }
 };
 
 page.onResourceTimeout = function (request) {
-    console.log('Response (#' + request.id + '): ' + JSON.stringify(request));
+    console.log(new Date() + 'Response timeout (#' + request.id + '): ' + JSON.stringify(request));
 };
 
 page.onError = function (msg, trace) {
@@ -81,8 +87,8 @@ page.onError = function (msg, trace) {
 };
 
 page.onResourceError = function (resourceError) {
-    console.log('Unable to load resource (#' + resourceError.id + 'URL:' + resourceError.url + ')');
-    console.log('Error code: ' + resourceError.errorCode + '. Description: ' + resourceError.errorString);
+    console.log(new Date() + 'Unable to load resource (#' + resourceError.id + 'URL:' + resourceError.url + ')');
+    console.log(new Date() + 'Error code: ' + resourceError.errorCode + '. Description: ' + resourceError.errorString);
 };
 
 var url = "http://live.500.com";
@@ -92,7 +98,7 @@ if (args.length == 3) {
     days = args[1]
     charset = args[2]
 } else if (args.length == 2) {
-    charset = args[1]
+    days = args[1]
 } else if (args.length == 1) {
 } else {
     phantom.exit(1);
@@ -101,7 +107,7 @@ if (args.length == 3) {
 setInterval(function () {
 	var catchUrl = url + '/?e=' + getDateFromNow(days);
     page.open(catchUrl, function (status) {
-        console.log(new Date() + ' status is ' + status);
+        console.log(new Date() + 'open url[' + catchUrl + '] status is ' + status);
         if (status !== 'success') {
             console.log(new Date() + 'Unable to access network');
         } else {
@@ -156,7 +162,6 @@ setInterval(function () {
 function getTimestamp(t) {
     d = new Date(t);
     return d.format('yyyyMMdd_hhmmss');
-    //return t.getFullYear() + "" + (t.getMonth() + 1) + "" + t.getDate() + "_" + t.getHours() + "" + t.getMinutes() + "" + t.getSeconds();
 }
 
 function getDateFromNow(days){

@@ -1,10 +1,12 @@
 //eg.
-//phantomjs w500.js "2016-01-12" gbk
+//phantomjs w500.js 0 gbk
+//phantomjs w500.js -1 gbk
+//第一个参数是抓取的日期距离今天的天数，0表示抓取今天，-1表示昨天，以此类推
 
 var fs = require('fs');
 var args = require('system').args;
 var page = require('webpage').create();
-var CATCH_PERIOD_MILLS = 60000;
+var CATCH_PERIOD_MILLS = 30000;
 var tracker = (function () {
     var openRequests = [],
         counter = 0;
@@ -27,13 +29,13 @@ var tracker = (function () {
 
 Date.prototype.format = function (fmt) { //author: meizz
     var o = {
-        "M+": this.getMonth() + 1,                 //�·�
-        "d+": this.getDate(),                    //��
-        "h+": this.getHours(),                   //Сʱ
-        "m+": this.getMinutes(),                 //��
-        "s+": this.getSeconds(),                 //��
-        "q+": Math.floor((this.getMonth() + 3) / 3), //����
-        "S": this.getMilliseconds()             //����
+        "M+": this.getMonth() + 1,                 //月份
+        "d+": this.getDate(),                    //日
+        "h+": this.getHours(),                   //小时
+        "m+": this.getMinutes(),                 //分
+        "s+": this.getSeconds(),                 //秒
+        "q+": Math.floor((this.getMonth() + 3) / 3), //季度
+        "S": this.getMilliseconds()             //毫秒
     };
     if (/(y+)/.test(fmt))
         fmt = fmt.replace(RegExp.$1, (this.getFullYear() + "").substr(4 - RegExp.$1.length));
@@ -47,33 +49,63 @@ t = Date.now();
 
 page.onResourceRequested = function (req, controller) {
     tracker.start(req.id);
-    console.log('[Request ' + req.id + '] ' + req.url);
+//    console.log(new Date() + '[Request ' + req.id + '] ');
+
+    //console.log(new Date() + '[Request ' + req.id + '] ' + req.url);
 };
 
 page.onResourceReceived = function (res) {
     if (res.stage === 'end') {
         tracker.end(res.id);
-        console.log('[Response ' + res.id + '] ' + res.url);
+        //console.log('[Response ' + res.id + '] ' + res.url);
+        //       console.log(new Date() + '[Response ' + res.id + '] ');
     }
 };
 
-var url = 'http://live.500.com/';
-var charset = 'gbk';
+page.onResourceTimeout = function (request) {
+    console.log('Response (#' + request.id + '): ' + JSON.stringify(request));
+};
+
+page.onError = function (msg, trace) {
+
+    var msgStack = ['ERROR: ' + msg];
+
+    if (trace && trace.length) {
+        msgStack.push('TRACE:');
+        trace.forEach(function (t) {
+            msgStack.push(' -> ' + t.file + ': ' + t.line + (t.function ? ' (in function "' + t.function + '")' : ''));
+        });
+    }
+
+    console.error(msgStack.join('\n'));
+};
+
+page.onResourceError = function (resourceError) {
+    console.log('Unable to load resource (#' + resourceError.id + 'URL:' + resourceError.url + ')');
+    console.log('Error code: ' + resourceError.errorCode + '. Description: ' + resourceError.errorString);
+};
+
+var url = "http://live.500.com";
+var days = 0;
+var charset = 'utf8';
 if (args.length == 3) {
-    url = url + '?e=' + args[1]
+    days = args[1]
     charset = args[2]
 } else if (args.length == 2) {
-    charset = args[2]
+    charset = args[1]
 } else if (args.length == 1) {
 } else {
     phantom.exit(1);
 }
+
 setInterval(function () {
-    page.open('http://live.500.com/?e=' + args[1], function (status) {
+	var catchUrl = url + '/?e=' + getDateFromNow(days);
+    page.open(catchUrl, function (status) {
+        console.log(new Date() + ' status is ' + status);
         if (status !== 'success') {
-            console.log('Unable to access network');
+            console.log(new Date() + 'Unable to access network');
         } else {
-            console.log('[page load status] ' + JSON.stringify(status));
+            console.log(new Date() + '[page load status] ' + JSON.stringify(status));
 
             var intervalId, timeoutId;
 
@@ -82,7 +114,7 @@ setInterval(function () {
                     window.clearInterval(intervalId);
                     window.clearTimeout(timeoutId);
                     console.log('All clear!');
-                    phantom.exit(status !== 'success' ? 1 : 0);
+//                    phantom.exit(status !== 'success' ? 1 : 0);
                 }
             }, 750);
 
@@ -107,20 +139,28 @@ setInterval(function () {
                 try {
                     fs.write(getTimestamp(t) + '.html', p, {
                         mode: 'w',
-                        charset: args[2]
+                        charset: charset
                     });
                 } catch (e) {
                     console.log(e);
                 }
                 t = Date.now() - t;
                 console.log('Loading time ' + t + ' millsec');
+                console.log(catchUrl);
                 //phantom.exit(status !== 'success' ? 1 : 0);
             }, 10000);
         }
     });
 }, CATCH_PERIOD_MILLS);
+
 function getTimestamp(t) {
     d = new Date(t);
     return d.format('yyyyMMdd_hhmmss');
     //return t.getFullYear() + "" + (t.getMonth() + 1) + "" + t.getDate() + "_" + t.getHours() + "" + t.getMinutes() + "" + t.getSeconds();
+}
+
+function getDateFromNow(days){
+	var t = Date.now() + 1000*days*24*60*60;
+	var d = new Date(t);
+	return d.format('yyyy-MM-dd');
 }

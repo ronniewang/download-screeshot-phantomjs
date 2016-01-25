@@ -6,6 +6,7 @@
 
 eg
 ---
-./phantomjs 500.js "http://live.500.com/?e=2016-01-13" gbk
+./phantomjs 500.js 0 gbk //抓今天的
+./phantomjs 500.js -1 gbk //抓昨天的
 
 运行之后，会在当前目录下生成页面对应的html文件，还有页面截图

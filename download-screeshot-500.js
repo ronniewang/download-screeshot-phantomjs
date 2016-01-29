@@ -8,10 +8,9 @@ var args = require('system').args;
 var page = require('webpage').create();
 page.settings.resourceTimeout = 5000; // 5 seconds
 page.onResourceTimeout = function(e) {
-  console.log(e.errorCode);   // it'll probably be 408 
-  console.log(e.errorString); // it'll probably be 'Network timeout on resource'
-  console.log(e.url);         // the url whose request timed out
-//  phantom.exit(1);
+    console.log(e.errorCode);   // it'll probably be 408 
+    console.log(e.errorString); // it'll probably be 'Network timeout on resource'
+    console.log(e.url);         // the url whose request timed out
 };
 
 var CATCH_PERIOD_MILLS = 30000;
@@ -58,13 +57,11 @@ t = Date.now();
 
 page.onResourceRequested = function (req, controller) {
     tracker.start(req.id);
-//    console.log(new Date() + '[Request ' + req.id + '] ');
 };
 
 page.onResourceReceived = function (res) {
     if (res.stage === 'end') {
         tracker.end(res.id);
-        //       console.log(new Date() + '[Response ' + res.id + '] ');
     }
 };
 
@@ -82,7 +79,6 @@ page.onError = function (msg, trace) {
             msgStack.push(' -> ' + t.file + ': ' + t.line + (t.function ? ' (in function "' + t.function + '")' : ''));
         });
     }
-
     console.error(msgStack.join('\n'));
 };
 
@@ -105,7 +101,7 @@ if (args.length == 3) {
 }
 
 setInterval(function () {
-	var catchUrl = url + '/?e=' + getDateFromNow(days);
+    var catchUrl = url + '/?e=' + getDateFromNow(days);
     page.open(catchUrl, function (status) {
         console.log(new Date() + 'open url[' + catchUrl + '] status is ' + status);
         if (status !== 'success') {
@@ -120,7 +116,6 @@ setInterval(function () {
                     window.clearInterval(intervalId);
                     window.clearTimeout(timeoutId);
                     console.log('All clear!');
-//                    phantom.exit(status !== 'success' ? 1 : 0);
                 }
             }, 750);
 
@@ -165,7 +160,7 @@ function getTimestamp(t) {
 }
 
 function getDateFromNow(days){
-	var t = Date.now() + 1000*days*24*60*60;
-	var d = new Date(t);
-	return d.format('yyyy-MM-dd');
+    var t = Date.now() + 1000*days*24*60*60;
+    var d = new Date(t);
+    return d.format('yyyy-MM-dd');
 }
